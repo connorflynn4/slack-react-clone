@@ -8,6 +8,7 @@ function App() {
     <div className="app">
       <Router>
       <>
+      <h1>test</h1>
         <Switch>
           <Route path="/" exact>
             <h1>This is the home page</h1>
