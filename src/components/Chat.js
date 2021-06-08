@@ -1,90 +1,135 @@
-import React from 'react'
-import styled from 'styled-components';
-import StarBorderOutlinedIcon from "@material-ui/icons/StarBorderOutlined";
-import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined'
+import { useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { selectRoomId } from '../features/appSlice';
-import  ChatInput from '../components/ChatInput';
 
-function Chat() {
+import styled from 'styled-components';
 
-    const roomId = useSelector(selectRoomId);
-    return (
+import ChatInput from '../components/ChatInput';
+import Message from '../components/Message';
+
+import StarBorderOutlinedIcon from '@material-ui/icons/StarBorderOutlined';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
+
+import { useDocument } from 'react-firebase-hooks/firestore';
+import { db } from '../firebase';
+
+export default function Chat() {
+  const chatBottomRef = useRef(null);
+  const roomId = useSelector(selectRoomId);
+  const [roomDetails] = useDocument(
+    roomId && db.collection('rooms').doc(roomId)
+  );
+
+  const [roomMessages, loading] = useDocument(
+    roomId &&
+    db.collection('rooms')
+      .doc(roomId)
+      .collection('messages')
+      .orderBy('timestamp', 'asc')
+  );
+
+  useEffect (() => {
+    chatBottomRef?.current?.scrollIntoView({
+      behavior: 'smooth'
+    });
+  }, [roomId, loading])
+
+ 
+
+  
+
+  return (
     <ChatContainer>
-        <>
-            <Header>
-                <HeaderLeft>
-                <h4><strong>#Room name</strong></h4>
-                <StarBorderOutlinedIcon />
-                </HeaderLeft>
-
-                <HeaderRight>
-                <p>
-                <InfoOutlinedIcon /> Details</p>
-                </HeaderRight>
-            
-            </Header>
-
-            <ChatMessages>
-            
-            </ChatMessages>
-
-            <ChatInput
-                //ChannelName
-                channelId={roomId}
+    {roomDetails && roomMessages  && (
+      <>
+      <ChatHeader>
+        <HeaderLeft>
+          <h4>#{roomDetails?.data().name}</h4>
+          <StarBorderOutlinedIcon />
+        </HeaderLeft>
+        <HeaderRight>
+          <InfoOutlinedIcon />
+        </HeaderRight>
+      </ChatHeader>
+      <ChatMessages
+      >
+        {roomMessages?.docs.map(doc => {
+          const { message, timestamp, user, userImage } = doc.data();
+          return (
+            <Message
+              key={doc.id}
+              message={message}
+              timestamp={timestamp}
+              user={user}
+              userImage={userImage}
             />
-            
-        </>
+          )
+        })}
+        <ChatBottom
+          ref={chatBottomRef}
+        />
+      </ChatMessages>
+      <ChatInput
+        channelId={roomId}
+        channelName={roomDetails?.data().name}
+        chatBottomRef={chatBottomRef}
+      />
+      </>
 
+    )}
 
+  
+      
     </ChatContainer>
-)
+  );
 }
-
-export default Chat;
-
-const Header = styled.div`
-display: flex;
-justify-content: space-between;
-padding: 20px;
-border-bottom: 1px solid lightgrey;
-`;
-
-const ChatMessages = styled.div``;
-
-const HeaderLeft = styled.div`
-
-display: flex;
-align-items: center;
-
->h4 {
-    display: flex;
-    margin-right: 10px;
-    text-transform: lowercase;
-}
-
->h4 > .MuiSvgIcon-root{
-    margin-left: 10px;
-    font-size: 18px;
-}
-`;
-const HeaderRight = styled.div`
->p{
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-}
-
-> p > .MuiSvgIcon-root{
-    margin-right: 5px !important;
-    font-size: 16px;
-}
-`;
-
 
 const ChatContainer = styled.div`
-flex: 0.7;
-flex-grow: 1;
-overflow-y: scroll;
-margin-top: 60px;
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ChatHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-left: 2.2rem;
+  padding-right: 2.6rem;
+  height: var(--chat-header-height);
+  border-bottom: .1rem solid var(--chat-header-border-color);
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: flex-end;
+  > .MuiSvgIcon-root {
+    font-size: 1.8rem;
+  }
+  > h4 {
+    margin-top: 70px;
+    font-size: 18px;
+    font-weight: bold;
+    margin-right: .5rem;
+  }
+`;
+
+const HeaderRight = styled.div`
+  > .MuiSvgIcon-root {
+    font-size: 14px;
+    color: rgba(29, 28, 29, 0.7);
+  }
+`;
+
+const ChatMessages = styled.div`
+  height: calc(var(--chat-messages-height) - 1rem);
+  padding: 1rem 2rem;
+  overflow-y: scroll;
+
+`;
+
+const ChatBottom = styled.div`
+padding-bottom: 200px;
+
 `;
